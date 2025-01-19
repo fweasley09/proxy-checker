@@ -6,7 +6,10 @@ import socks
 def check_proxy(proxy, proxy_type):
     try:
         if proxy_type == 'socks5':
-            socks.setdefaultproxy(socks.PROXY_TYPE_SOCKS5, proxy.split(':')[0], int(proxy.split(':')[1]))
+            parts = proxy.split(":")
+            address = parts[1].strip()
+            port = int(parts[2].strip())  # Convert port to integer safely
+            socks.setdefaultproxy(socks.PROXY_TYPE_SOCKS5, address, port)
             socket = socks.socksocket()
             socket.settimeout(5)
 
@@ -16,6 +19,9 @@ def check_proxy(proxy, proxy_type):
         else:
             return False
     except requests.exceptions.RequestException:
+        return False
+    except ValueError:
+        print(f"Invalid proxy format: {proxy}")
         return False
 
 def main():
