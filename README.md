@@ -13,8 +13,10 @@ A Python script to check HTTP/HTTPS/SOCKS4/SOCKS5 proxies from a text file and s
 **1. Clone**
 git clone https://github.com/fweasley09/proxy-checker.git
 cd proxy-checker
+
 **2. Install dependencies** 
 pip install -r requirements.txt
+
 **3. Run the script**
 python3 main.py
 
