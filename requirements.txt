@@ -1,1 +1,3 @@
 requests
+pysocks
+requests[socks]
