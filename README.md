@@ -4,7 +4,7 @@ A Python script to check HTTP/HTTPS/SOCKS4/SOCKS5 proxies from a text file and s
 
 # Features
 - Check proxies from a text file (one proxy per line)
-- Save working and non-working proxies to separate sections in the output file
+- Save working and remove non-working proxies in the output file
 - Customizable timeout (default: 5 seconds)
 - Easy-to-use interface
 
