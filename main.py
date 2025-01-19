@@ -1,7 +1,15 @@
 import requests
+from requests.adapters import HTTPAdapter
+from urllib3.util.retry import Retry
+import socks
 
-def check_proxy(proxy):
+def check_proxy(proxy, proxy_type):
     try:
+        if proxy_type == 'socks5':
+            socks.setdefaultproxy(socks.PROXY_TYPE_SOCKS5, proxy.split(':')[0], int(proxy.split(':')[1]))
+            socket = socks.socksocket()
+            socket.settimeout(5)
+
         response = requests.get('http://example.com', proxies={'http': proxy, 'https': proxy}, timeout=5)
         if response.status_code == 200:
             return True
@@ -11,8 +19,8 @@ def check_proxy(proxy):
         return False
 
 def main():
-    proxy_file = 'proxies.txt'  # input file
-    output_file = 'checked_proxies.txt'  # output file
+    proxy_file = 'proxies.txt'
+    output_file = 'checked_proxies.txt'
 
     working_proxies = []
     non_working_proxies = []
@@ -21,8 +29,9 @@ def main():
         proxies = [line.strip() for line in f.readlines()]
 
     for proxy in proxies:
+        proxy_type = 'http' if proxy.startswith('http') else 'socks5'
         print(f"Checking {proxy}...")
-        if check_proxy(proxy):
+        if check_proxy(proxy, proxy_type):
             working_proxies.append(proxy)
             print(f"{proxy} - WORKING")
         else:
