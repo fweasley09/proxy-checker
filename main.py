@@ -1,59 +1,59 @@
-import requests
-from requests.adapters import HTTPAdapter
-from urllib3.util.retry import Retry
 import socks
+import socket
+from concurrent.futures import ThreadPoolExecutor
 
-def check_proxy(proxy, proxy_type):
+# Function to check a single proxy
+def check_proxy(proxy):
     try:
-        if proxy_type == 'socks5':
-            parts = proxy.split(":")
-            address = parts[1].strip()
-            port = int(parts[2].strip())  # Convert port to integer safely
-            socks.setdefaultproxy(socks.PROXY_TYPE_SOCKS5, address, port)
-            socket = socks.socksocket()
-            socket.settimeout(5)
+        # Extract host and port from the proxy string
+        host, port = proxy.split(":")
+        port = int(port)
 
-        response = requests.get('http://example.com', proxies={'http': proxy, 'https': proxy}, timeout=5)
-        if response.status_code == 200:
-            return True
-        else:
-            return False
-    except requests.exceptions.RequestException:
-        return False
-    except ValueError:
-        print(f"Invalid proxy format: {proxy}")
-        return False
+        # Set up the SOCKS5 proxy
+        socks.setdefaultproxy(socks.PROXY_TYPE_SOCKS5, host, port)
+        socket.socket = socks.socksocket
 
-def main():
-    proxy_file = 'proxies.txt'
-    output_file = 'checked_proxies.txt'
+        # Test connection to a target website (e.g., Google)
+        test_socket = socket.create_connection(("www.google.com", 80), timeout=5)
+        test_socket.close()
 
-    working_proxies = []
-    non_working_proxies = []
+        return proxy, True
+    except Exception:
+        return proxy, False
 
-    with open(proxy_file, 'r') as f:
-        proxies = [line.strip() for line in f.readlines()]
+# Load proxies from a file
+def load_proxies(file_path):
+    with open(file_path, "r") as file:
+        return [line.strip().replace("socks5://", "") for line in file if line.strip()]
 
-    for proxy in proxies:
-        proxy_type = 'http' if proxy.startswith('http') else 'socks5'
-        print(f"Checking {proxy}...")
-        if check_proxy(proxy, proxy_type):
-            working_proxies.append(proxy)
-            print(f"{proxy} - WORKING")
-        else:
-            non_working_proxies.append(proxy)
-            print(f"{proxy} - NOT WORKING")
+# Save live proxies to a file
+def save_live_proxies(file_path, live_proxies):
+    with open(file_path, "w") as file:
+        for proxy in live_proxies:
+            file.write(f"socks5://{proxy}\n")
 
-    with open(output_file, 'w') as f:
-        f.write("# Working Proxies\n")
-        for proxy in working_proxies:
-            f.write(proxy + "\n")
-        f.write("\n# Non-Working Proxies\n")
-        for proxy in non_working_proxies:
-            f.write(proxy + "\n")
+# Main function to check proxies
+def main(input_file, output_file, max_threads=100):
+    print("Loading proxies...")
+    proxies = load_proxies(input_file)
 
-    print("Proxy checking complete!")
-    print(f"Working: {len(working_proxies)} | Non-Working: {len(non_working_proxies)}")
+    print(f"Checking {len(proxies)} proxies...")
+    live_proxies = []
+
+    with ThreadPoolExecutor(max_workers=max_threads) as executor:
+        results = executor.map(check_proxy, proxies)
+        for proxy, is_alive in results:
+            if is_alive:
+                live_proxies.append(proxy)
+
+    print(f"Found {len(live_proxies)} live proxies.")
+    save_live_proxies(output_file, live_proxies)
+    print(f"Live proxies saved to {output_file}")
 
 if __name__ == "__main__":
-    main()
+    # Specify input and output file paths
+    input_file = "proxies.txt"  # Replace with your input file name
+    output_file = "live_proxies.txt"     # Replace with your desired output file name
+
+    # Run the proxy checker
+    main(input_file, output_file)
